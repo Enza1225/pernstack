@@ -1,31 +1,34 @@
 const { Pool } = require("pg");
-const crypto = require("crypto");
+const bcrypt = require("bcrypt");
 
 const connectionString =
   process.env.DATABASE_URL ||
   "***DATABASE_URL_REMOVED***";
 
-function hashPassword(password) {
-  return crypto.createHash("sha256").update(password).digest("hex");
-}
-
 async function main() {
   const pool = new Pool({ connectionString });
 
-  const hashedPassword = hashPassword("***REMOVED***" + "salt_key");
+  const hashedPassword = await bcrypt.hash("***REMOVED***", 12);
 
-  const result = await pool.query(
-    `INSERT INTO "User" (phone, password, name, "createdAt", "updatedAt")
-     VALUES ($1, $2, $3, NOW(), NOW())
-     ON CONFLICT (phone) DO NOTHING
-     RETURNING id, phone, name`,
-    ["admin", hashedPassword, "Admin"],
-  );
+  // Update existing admin or create new one
+  const existing = await pool.query(`SELECT id FROM "User" WHERE phone = $1`, [
+    "admin",
+  ]);
 
-  if (result.rows.length > 0) {
-    console.log("Admin user created:", result.rows[0]);
+  if (existing.rows.length > 0) {
+    await pool.query(
+      `UPDATE "User" SET password = $1, role = $2, "updatedAt" = NOW() WHERE phone = $3`,
+      [hashedPassword, "admin", "admin"],
+    );
+    console.log("Admin user updated with bcrypt password and admin role");
   } else {
-    console.log("Admin user already exists.");
+    const result = await pool.query(
+      `INSERT INTO "User" (phone, password, name, role, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       RETURNING id, phone, name, role`,
+      ["admin", hashedPassword, "Admin", "admin"],
+    );
+    console.log("Admin user created:", result.rows[0]);
   }
 
   await pool.end();

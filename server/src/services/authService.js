@@ -1,13 +1,32 @@
-const crypto = require("crypto");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const prisma = require("../config/prisma");
 
-function hashPassword(password) {
-  return crypto.createHash("sha256").update(password).digest("hex");
+const JWT_SECRET =
+  process.env.JWT_SECRET || "***REMOVED***";
+const JWT_EXPIRES_IN = "24h";
+const SALT_ROUNDS = 12;
+const VALID_ROLES = ["student", "teacher", "staff", "admin"];
+
+function generateToken(user) {
+  return jwt.sign(
+    { id: user.id, phone: user.phone, role: user.role },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN },
+  );
 }
 
-async function registerUser(phone, password, name) {
+function verifyToken(token) {
+  return jwt.verify(token, JWT_SECRET);
+}
+
+async function registerUser(phone, password, name, role = "user") {
   if (!phone || !password) {
     throw new Error("Phone and password are required");
+  }
+
+  if (!VALID_ROLES.includes(role)) {
+    throw new Error("Invalid role");
   }
 
   const existing = await prisma.user.findUnique({ where: { phone } });
@@ -15,20 +34,28 @@ async function registerUser(phone, password, name) {
     throw new Error("Phone already registered");
   }
 
-  const hashedPassword = hashPassword(password + "salt_key");
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
   const user = await prisma.user.create({
     data: {
       phone,
       password: hashedPassword,
       name: name || null,
+      role,
     },
   });
 
-  return { id: user.id, phone: user.phone, name: user.name };
+  const token = generateToken(user);
+  return {
+    id: user.id,
+    phone: user.phone,
+    name: user.name,
+    role: user.role,
+    token,
+  };
 }
 
-async function loginUser(phone, password) {
+async function loginUser(phone, password, expectedRole = null) {
   if (!phone || !password) {
     throw new Error("Phone and password are required");
   }
@@ -38,12 +65,24 @@ async function loginUser(phone, password) {
     throw new Error("User not found");
   }
 
-  const hashedPassword = hashPassword(password + "salt_key");
-  if (user.password !== hashedPassword) {
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) {
     throw new Error("Invalid password");
   }
 
-  return { id: user.id, phone: user.phone, name: user.name };
+  // Role check: if expectedRole is provided, user must match
+  if (expectedRole && user.role !== expectedRole) {
+    throw new Error("Access denied. Invalid role for this portal.");
+  }
+
+  const token = generateToken(user);
+  return {
+    id: user.id,
+    phone: user.phone,
+    name: user.name,
+    role: user.role,
+    token,
+  };
 }
 
-module.exports = { registerUser, loginUser };
+module.exports = { registerUser, loginUser, verifyToken, VALID_ROLES };
