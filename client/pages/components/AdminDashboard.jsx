@@ -10,7 +10,8 @@ export default function AdminDashboard({ user, onLogout }) {
   const [editRole, setEditRole] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   useEffect(() => {
     fetchUsers();

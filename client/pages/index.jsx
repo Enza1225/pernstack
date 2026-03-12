@@ -1,19 +1,41 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import http from "../api/http";
 import AdminDashboard from "./components/AdminDashboard";
 import StaffDashboard from "./components/StaffDashboard";
 
 export default function HomePage() {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) {
       try {
-        setUser(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        setUser(parsed);
+        if (parsed.role === "student") {
+          fetchProfile();
+        }
       } catch {}
     }
   }, []);
+
+  const fetchProfile = async () => {
+    setProfileLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await http.get("/api/profile/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProfile(res.data.profile);
+    } catch {
+      // no profile
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -78,33 +100,65 @@ export default function HomePage() {
 
           {/* Quick Info Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {/* Profile status card */}
             <div className="bg-white rounded-xl shadow-sm border p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-xl">
-                  👤
+                  📋
                 </div>
-                <h3 className="font-semibold text-gray-800">Миний мэдээлэл</h3>
+                <h3 className="font-semibold text-gray-800">Хувийн мэдээлэл</h3>
               </div>
-              <div className="space-y-2 text-sm text-gray-600">
-                <p>
-                  Нэр:{" "}
-                  <span className="text-gray-800 font-medium">
-                    {user.name || "—"}
-                  </span>
-                </p>
-                <p>
-                  Утас:{" "}
-                  <span className="text-gray-800 font-medium">
-                    {user.phone}
-                  </span>
-                </p>
-                <p>
-                  Эрх:{" "}
-                  <span className="text-gray-800 font-medium">
-                    {roleLabels[user.role] || user.role}
-                  </span>
-                </p>
-              </div>
+              {profileLoading ? (
+                <p className="text-sm text-gray-400">Ачааллаж байна...</p>
+              ) : !profile ? (
+                <div>
+                  <p className="text-sm text-orange-600 mb-3">
+                    Хувийн мэдээллээ бөглөөгүй байна
+                  </p>
+                  <Link
+                    href="/profile"
+                    className="inline-block bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+                  >
+                    Мэдээлэл бөглөх
+                  </Link>
+                </div>
+              ) : profile.isVerified ? (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-green-500 text-lg">✅</span>
+                    <span className="text-sm text-green-700 font-medium">
+                      Баталгаажсан
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    {profile.lastName} {profile.firstName}
+                  </p>
+                  <Link
+                    href="/programs"
+                    className="inline-block mt-2 text-sm text-indigo-600 hover:underline"
+                  >
+                    Хөтөлбөр сонгох →
+                  </Link>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-yellow-500 text-lg">⏳</span>
+                    <span className="text-sm text-yellow-700 font-medium">
+                      Хүлээгдэж байна
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Мэдээлэл шалгагдаж байна
+                  </p>
+                  <Link
+                    href="/profile"
+                    className="inline-block mt-2 text-sm text-indigo-600 hover:underline"
+                  >
+                    Дэлгэрэнгүй →
+                  </Link>
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border p-6">

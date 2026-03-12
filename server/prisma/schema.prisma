@@ -7,13 +7,31 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  phone     String   @unique
+  id        Int             @id @default(autoincrement())
+  phone     String          @unique
   password  String
   name      String?
-  role      String   @default("student")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role      String          @default("student")
+  profile   StudentProfile?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model StudentProfile {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique
+  user           User     @relation(fields: [userId], references: [id])
+  registerNumber String // Регистрийн дугаар
+  lastName       String // Овог
+  firstName      String // Нэр
+  birthDate      DateTime // Төрсөн огноо
+  gender         String // Хүйс: male / female
+  province       String // Аймаг / Хот
+  district       String // Сум / Дүүрэг
+  examId         String? // ЭЕШ дугаар (12 ангийн төгсөгч)
+  isVerified     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model VerificationCode {
