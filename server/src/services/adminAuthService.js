@@ -10,10 +10,10 @@ const {
 const QRCode = require("qrcode");
 const prisma = require("../config/prisma");
 
-const JWT_SECRET =
-  process.env.ADMIN_JWT_SECRET ||
-  process.env.JWT_SECRET ||
-  "admin_***REMOVED***";
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = "8h";
 const SALT_ROUNDS = 12;
 const MAX_FAILED_ATTEMPTS = 5;
@@ -23,6 +23,19 @@ const APP_NAME = "MNUAC Admin";
 // TOTP plugins
 const crypto = new NobleCryptoPlugin();
 const base32 = new ScureBase32Plugin();
+
+// Short-lived token for step 2 (after password verified, before TOTP)
+function generateStepToken(adminId) {
+  return jwt.sign({ adminId, step: "totp" }, JWT_SECRET, { expiresIn: "5m" });
+}
+
+function verifyStepToken(token) {
+  const decoded = jwt.verify(token, JWT_SECRET);
+  if (decoded.step !== "totp") {
+    throw new Error("Invalid step token");
+  }
+  return decoded.adminId;
+}
 
 function generateAdminToken(admin) {
   return jwt.sign(
@@ -257,6 +270,29 @@ async function createAdmin(email, password) {
   return { id: admin.id, email: admin.email };
 }
 
+// Get QR code from existing saved secret (does NOT regenerate)
+async function getQrCode(adminId) {
+  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
+  if (!admin) {
+    throw new Error("Админ олдсонгүй");
+  }
+  if (!admin.totpSecret) {
+    throw new Error("TOTP тохиргоо хийгдээгүй байна");
+  }
+
+  const otpauth = generateURI({
+    secret: admin.totpSecret,
+    issuer: APP_NAME,
+    label: admin.email,
+  });
+  const qrCodeDataUrl = await QRCode.toDataURL(otpauth);
+
+  return {
+    qrCode: qrCodeDataUrl,
+    secret: admin.totpSecret,
+  };
+}
+
 module.exports = {
   verifyCredentials,
   verifyTotpAndLogin,
@@ -265,4 +301,7 @@ module.exports = {
   createAdmin,
   verifyAdminToken,
   generateAdminToken,
+  getQrCode,
+  generateStepToken,
+  verifyStepToken,
 };

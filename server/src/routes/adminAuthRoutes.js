@@ -9,6 +9,7 @@ const {
   adminMe,
   adminLogout,
   adminCreate,
+  adminGetQr,
 } = require("../controllers/adminAuthController");
 
 const router = express.Router();
@@ -83,6 +84,7 @@ router.post("/login", loginLimiter, sanitizeInput, adminLogin);
 router.post("/verify-totp", totpLimiter, sanitizeInput, adminVerifyTotp);
 router.post("/setup-totp", totpLimiter, sanitizeInput, adminSetupTotp);
 router.post("/enable-totp", totpLimiter, sanitizeInput, adminEnableTotp);
+router.post("/get-qr", totpLimiter, sanitizeInput, adminGetQr);
 
 // Protected routes
 router.get("/me", authenticateAdmin, adminMe);

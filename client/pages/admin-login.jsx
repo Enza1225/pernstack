@@ -8,7 +8,7 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
-  const [adminId, setAdminId] = useState(null);
+  const [stepToken, setStepToken] = useState(null);
   const [qrCode, setQrCode] = useState(null);
   const [totpSecret, setTotpSecret] = useState(null);
   const [message, setMessage] = useState("");
@@ -27,13 +27,13 @@ export default function AdminLoginPage() {
       });
 
       if (res.data.requireTotp) {
-        setAdminId(res.data.adminId);
+        setStepToken(res.data.stepToken);
         setStep(3);
         setMessage("");
       } else if (res.data.requireTotpSetup) {
-        setAdminId(res.data.adminId);
+        setStepToken(res.data.stepToken);
         const setupRes = await http.post("/api/admin/auth/setup-totp", {
-          adminId: res.data.adminId,
+          stepToken: res.data.stepToken,
         });
         setQrCode(setupRes.data.qrCode);
         setTotpSecret(setupRes.data.secret);
@@ -54,7 +54,7 @@ export default function AdminLoginPage() {
     setMessage("");
     try {
       const res = await http.post("/api/admin/auth/enable-totp", {
-        adminId,
+        stepToken,
         totpCode,
       });
 
@@ -82,7 +82,7 @@ export default function AdminLoginPage() {
     setMessage("");
     try {
       const res = await http.post("/api/admin/auth/verify-totp", {
-        adminId,
+        stepToken,
         totpCode,
       });
 

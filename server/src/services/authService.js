@@ -2,8 +2,10 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const prisma = require("../config/prisma");
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "***REMOVED***";
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = "24h";
 const SALT_ROUNDS = 12;
 const VALID_ROLES = ["student", "teacher", "staff", "admin"];

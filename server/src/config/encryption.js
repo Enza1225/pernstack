@@ -1,7 +1,9 @@
 const crypto = require("crypto");
 
-const ENCRYPTION_KEY =
-  process.env.ENCRYPTION_KEY || "***REMOVED***"; // 32 chars = 256 bit
+if (!process.env.ENCRYPTION_KEY) {
+  throw new Error("ENCRYPTION_KEY environment variable is required");
+}
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
 

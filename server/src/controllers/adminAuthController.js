@@ -4,6 +4,9 @@ const {
   setupTotp,
   enableTotp,
   createAdmin,
+  getQrCode,
+  generateStepToken,
+  verifyStepToken,
 } = require("../services/adminAuthService");
 
 // Step 1: Login with email + password
@@ -11,13 +14,14 @@ async function adminLogin(req, res) {
   try {
     const { email, password } = req.body;
     const result = await verifyCredentials(email, password);
+    const stepToken = generateStepToken(result.adminId);
 
     if (result.totpEnabled) {
-      // TOTP required — send back adminId for step 2
+      // TOTP required — send back stepToken for step 2
       return res.json({
         success: true,
         requireTotp: true,
-        adminId: result.adminId,
+        stepToken,
         message: "TOTP код оруулна уу",
       });
     }
@@ -26,7 +30,7 @@ async function adminLogin(req, res) {
     return res.json({
       success: true,
       requireTotpSetup: true,
-      adminId: result.adminId,
+      stepToken,
       message: "TOTP тохиргоо хийх шаардлагатай",
     });
   } catch (error) {
@@ -37,16 +41,16 @@ async function adminLogin(req, res) {
 // Step 2: Verify TOTP code and get token
 async function adminVerifyTotp(req, res) {
   try {
-    const { adminId, totpCode } = req.body;
+    const { stepToken, totpCode } = req.body;
 
-    if (!adminId || !totpCode) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Admin ID болон TOTP код шаардлагатай",
-        });
+    if (!stepToken || !totpCode) {
+      return res.status(400).json({
+        success: false,
+        message: "Step token болон TOTP код шаардлагатай",
+      });
     }
+
+    const adminId = verifyStepToken(stepToken);
 
     const result = await verifyTotpAndLogin(adminId, totpCode);
 
@@ -72,12 +76,14 @@ async function adminVerifyTotp(req, res) {
 // TOTP Setup: Generate QR code
 async function adminSetupTotp(req, res) {
   try {
-    const { adminId } = req.body;
-    if (!adminId) {
+    const { stepToken } = req.body;
+    if (!stepToken) {
       return res
         .status(400)
-        .json({ success: false, message: "Admin ID шаардлагатай" });
+        .json({ success: false, message: "Step token шаардлагатай" });
     }
+
+    const adminId = verifyStepToken(stepToken);
 
     const result = await setupTotp(adminId);
     res.json({
@@ -93,15 +99,15 @@ async function adminSetupTotp(req, res) {
 // TOTP Enable: Verify first code to activate TOTP
 async function adminEnableTotp(req, res) {
   try {
-    const { adminId, totpCode } = req.body;
-    if (!adminId || !totpCode) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Admin ID болон TOTP код шаардлагатай",
-        });
+    const { stepToken, totpCode } = req.body;
+    if (!stepToken || !totpCode) {
+      return res.status(400).json({
+        success: false,
+        message: "Step token болон TOTP код шаардлагатай",
+      });
     }
+
+    const adminId = verifyStepToken(stepToken);
 
     await enableTotp(adminId, totpCode);
 
@@ -168,6 +174,28 @@ async function adminCreate(req, res) {
   }
 }
 
+// Get QR code for existing TOTP setup
+async function adminGetQr(req, res) {
+  try {
+    const { stepToken } = req.body;
+    if (!stepToken) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Step token шаардлагатай" });
+    }
+
+    const adminId = verifyStepToken(stepToken);
+    const result = await getQrCode(adminId);
+    res.json({
+      success: true,
+      qrCode: result.qrCode,
+      secret: result.secret,
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+}
+
 module.exports = {
   adminLogin,
   adminVerifyTotp,
@@ -176,4 +204,5 @@ module.exports = {
   adminMe,
   adminLogout,
   adminCreate,
+  adminGetQr,
 };
