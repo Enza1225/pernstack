@@ -85,4 +85,38 @@ async function loginUser(phone, password, expectedRole = null) {
   };
 }
 
-module.exports = { registerUser, loginUser, verifyToken, VALID_ROLES };
+async function loginWithCode(phone, code, expectedRoles = null) {
+  if (!phone || !code) {
+    throw new Error("Phone and code are required");
+  }
+
+  const user = await prisma.user.findUnique({ where: { phone } });
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (expectedRoles && !expectedRoles.includes(user.role)) {
+    throw new Error("Access denied. Invalid role for this portal.");
+  }
+
+  // Verify the code
+  const { verifyCode } = require("../services/verificationService");
+  await verifyCode(phone, code);
+
+  const token = generateToken(user);
+  return {
+    id: user.id,
+    phone: user.phone,
+    name: user.name,
+    role: user.role,
+    token,
+  };
+}
+
+module.exports = {
+  registerUser,
+  loginUser,
+  loginWithCode,
+  verifyToken,
+  VALID_ROLES,
+};

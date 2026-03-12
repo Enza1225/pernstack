@@ -2,6 +2,7 @@ const express = require("express");
 const {
   register,
   login,
+  loginWithCode,
   sendCode,
   verify,
   getMe,
@@ -14,6 +15,7 @@ router.post("/send-code", sendCode);
 router.post("/verify-code", verify);
 router.post("/register", register);
 router.post("/login", login);
+router.post("/login-with-code", loginWithCode);
 
 // Protected routes
 router.get("/me", authenticate, getMe);

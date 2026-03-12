@@ -69,4 +69,24 @@ async function getMe(req, res) {
   });
 }
 
-module.exports = { register, login, sendCode, verify, getMe };
+async function loginWithCode(req, res) {
+  try {
+    const { phone, code, roles } = req.body;
+    const {
+      loginWithCode: loginWithCodeService,
+    } = require("../services/authService");
+    const user = await loginWithCodeService(phone, code, roles || null);
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      user,
+    });
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
+module.exports = { register, login, loginWithCode, sendCode, verify, getMe };

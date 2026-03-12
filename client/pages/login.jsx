@@ -1,8 +1,8 @@
+import Link from "next/link";
 import { useState } from "react";
 import http from "../api/http";
 
 export default function LoginPage() {
-  const [isStaff, setIsStaff] = useState(false);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -17,7 +17,7 @@ export default function LoginPage() {
       const response = await http.post("/api/auth/login", {
         phone: fullPhone,
         password,
-        role: isStaff ? "staff" : "student",
+        role: "student",
       });
 
       const { user } = response.data;
@@ -50,33 +50,7 @@ export default function LoginPage() {
         onSubmit={handleLogin}
         className="bg-white p-8 rounded shadow-md w-full max-w-md"
       >
-        <h1 className="text-2xl font-bold mb-6 text-center">Нэвтрэх</h1>
-
-        {/* Оюутан / Багш-Ажилтан tab */}
-        <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
-          <button
-            type="button"
-            onClick={() => setIsStaff(false)}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition ${
-              !isStaff
-                ? "bg-white text-blue-600 shadow"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Оюутан
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsStaff(true)}
-            className={`flex-1 py-2 text-sm font-medium rounded-md transition ${
-              isStaff
-                ? "bg-white text-purple-600 shadow"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            Багш / Ажилтан
-          </button>
-        </div>
+        <h1 className="text-2xl font-bold mb-6 text-center">Оюутан нэвтрэх</h1>
 
         <div className="mb-4">
           <label className="block text-gray-700 mb-2">Утасны дугаар</label>
@@ -111,11 +85,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isLoading}
-          className={`w-full text-white py-2 rounded disabled:opacity-50 transition ${
-            isStaff
-              ? "bg-purple-600 hover:bg-purple-700"
-              : "bg-blue-500 hover:bg-blue-600"
-          }`}
+          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:opacity-50 transition"
         >
           {isLoading ? "Нэвтэрч байна..." : "Нэвтрэх"}
         </button>
@@ -134,6 +104,16 @@ export default function LoginPage() {
             Бүртгүүлэх
           </a>
         </p>
+
+        <div className="mt-4 pt-4 border-t text-center text-sm text-gray-400">
+          <Link href="/staff-login" className="text-purple-600 hover:underline">
+            Багш / Ажилтан нэвтрэх
+          </Link>
+          <span className="mx-2">|</span>
+          <Link href="/admin-login" className="text-gray-500 hover:underline">
+            Админ
+          </Link>
+        </div>
       </form>
     </div>
   );
