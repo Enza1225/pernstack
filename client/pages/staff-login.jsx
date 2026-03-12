@@ -8,8 +8,22 @@ export default function StaffLoginPage() {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
   const fullPhone = phone.startsWith("+976") ? phone : `+976${phone}`;
+
+  const startCooldown = () => {
+    setCooldown(60);
+    const timer = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const handleSendCode = async (e) => {
     e.preventDefault();
@@ -18,6 +32,7 @@ export default function StaffLoginPage() {
     try {
       await http.post("/api/auth/send-code", { phone: fullPhone });
       setStep(2);
+      startCooldown();
       setMessage("Баталгаажуулах код илгээгдлээ");
     } catch (error) {
       setMessage(error.response?.data?.message || "Код илгээхэд алдаа гарлаа");
@@ -62,10 +77,12 @@ export default function StaffLoginPage() {
   };
 
   const handleResend = async () => {
+    if (cooldown > 0) return;
     setIsLoading(true);
     setMessage("");
     try {
       await http.post("/api/auth/send-code", { phone: fullPhone });
+      startCooldown();
       setMessage("Шинэ код илгээгдлээ!");
       setCode("");
     } catch (error) {
@@ -161,10 +178,10 @@ export default function StaffLoginPage() {
               <button
                 type="button"
                 onClick={handleResend}
-                disabled={isLoading}
-                className="text-purple-600 hover:text-purple-800"
+                disabled={isLoading || cooldown > 0}
+                className="text-purple-600 hover:text-purple-800 disabled:opacity-50"
               >
-                Дахин илгээх
+                {cooldown > 0 ? `Дахин илгээх (${cooldown}с)` : "Дахин илгээх"}
               </button>
             </div>
           </form>

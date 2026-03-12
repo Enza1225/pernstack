@@ -92,14 +92,6 @@ async function getAllProfiles(adminUserId, ipAddress) {
     orderBy: { createdAt: "desc" },
   });
 
-  await logAudit({
-    action: "profile.list",
-    userId: adminUserId,
-    targetType: "StudentProfile",
-    ipAddress,
-    details: { count: profiles.length },
-  });
-
   return profiles.map(decryptProfile);
 }
 

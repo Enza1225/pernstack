@@ -9,8 +9,22 @@ export default function RegisterPage() {
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
   const fullPhone = phone.startsWith("+976") ? phone : `+976${phone}`;
+
+  const startCooldown = () => {
+    setCooldown(60);
+    const timer = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const handleSendCode = async (e) => {
     e.preventDefault();
@@ -19,6 +33,7 @@ export default function RegisterPage() {
     try {
       await http.post("/api/auth/send-code", { phone: fullPhone });
       setStep(2);
+      startCooldown();
       setMessage("Verification code sent to your phone");
     } catch (error) {
       setMessage(error.response?.data?.message || "Failed to send code");
@@ -54,10 +69,12 @@ export default function RegisterPage() {
   };
 
   const handleResend = async () => {
+    if (cooldown > 0) return;
     setIsLoading(true);
     setMessage("");
     try {
       await http.post("/api/auth/send-code", { phone: fullPhone });
+      startCooldown();
       setMessage("New code sent!");
       setCode("");
     } catch (error) {
@@ -186,10 +203,10 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={handleResend}
-              disabled={isLoading}
+              disabled={isLoading || cooldown > 0}
               className="text-blue-500 hover:underline disabled:opacity-50"
             >
-              Resend Code
+              {cooldown > 0 ? `Дахин илгээх (${cooldown}с)` : "Resend Code"}
             </button>
           </div>
 

@@ -18,9 +18,18 @@ async function sendVerificationCode(phone) {
   const code = generateCode();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-  await prisma.verificationCode.create({
+  const record = await prisma.verificationCode.create({
     data: { phone, code, expiresAt },
   });
+
+  // 60 секундийн дараа датабаасаас автоматаар устгах
+  setTimeout(async () => {
+    try {
+      await prisma.verificationCode
+        .delete({ where: { id: record.id } })
+        .catch(() => {});
+    } catch {}
+  }, 60 * 1000);
 
   // TODO: SMS илгээх service-тэй холбох (Twilio, MessagePro гэх мэт)
   // Одоогоор console-д хэвлэнэ
