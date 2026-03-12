@@ -18,6 +18,18 @@ model User {
   updatedAt   DateTime        @updatedAt
 }
 
+model Admin {
+  id             Int       @id @default(autoincrement())
+  email          String    @unique
+  passwordHash   String
+  totpSecret     String?
+  totpEnabled    Boolean   @default(false)
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
 model StudentProfile {
   id             Int      @id @default(autoincrement())
   userId         Int      @unique

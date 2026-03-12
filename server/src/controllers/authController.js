@@ -7,6 +7,18 @@ const {
 async function sendCode(req, res) {
   try {
     const { phone } = req.body;
+
+    // Бүртгэгдсэн дугаар руу код илгээхгүй
+    const prisma = require("../config/prisma");
+    const existing = await prisma.user.findUnique({ where: { phone } });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "Энэ дугаар бүртгэлтэй байна. Нэвтрэх хуудас руу очно уу.",
+        alreadyRegistered: true,
+      });
+    }
+
     const result = await sendVerificationCode(phone);
     res.status(200).json({ success: true, message: result.message });
   } catch (error) {

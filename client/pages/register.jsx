@@ -36,6 +36,15 @@ export default function RegisterPage() {
       startCooldown();
       setMessage("Verification code sent to your phone");
     } catch (error) {
+      if (error.response?.data?.alreadyRegistered) {
+        setMessage(
+          "Энэ дугаар бүртгэлтэй байна. Нэвтрэх хуудас руу шилжиж байна...",
+        );
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 2000);
+        return;
+      }
       setMessage(error.response?.data?.message || "Failed to send code");
     } finally {
       setIsLoading(false);

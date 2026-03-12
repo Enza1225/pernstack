@@ -44,7 +44,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const [auditFilter, setAuditFilter] = useState("");
 
   const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
 
   useEffect(() => {
     fetchUsers();

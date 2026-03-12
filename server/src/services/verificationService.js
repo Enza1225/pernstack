@@ -1,41 +1,29 @@
-const crypto = require("crypto");
-const prisma = require("../config/prisma");
+const twilio = require("twilio");
 
-function generateCode() {
-  return crypto.randomInt(100000, 999999).toString();
-}
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const verifySid = process.env.TWILIO_VERIFY_SID;
+
+const client = twilio(accountSid, authToken);
 
 async function sendVerificationCode(phone) {
   if (!phone) {
     throw new Error("Phone number is required");
   }
 
-  // Delete old unused codes for this phone
-  await prisma.verificationCode.deleteMany({
-    where: { phone, used: false },
-  });
+  try {
+    const verification = await client.verify.v2
+      .services(verifySid)
+      .verifications.create({ to: phone, channel: "sms" });
 
-  const code = generateCode();
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
-  const record = await prisma.verificationCode.create({
-    data: { phone, code, expiresAt },
-  });
-
-  // 60 секундийн дараа датабаасаас автоматаар устгах
-  setTimeout(async () => {
-    try {
-      await prisma.verificationCode
-        .delete({ where: { id: record.id } })
-        .catch(() => {});
-    } catch {}
-  }, 60 * 1000);
-
-  // TODO: SMS илгээх service-тэй холбох (Twilio, MessagePro гэх мэт)
-  // Одоогоор console-д хэвлэнэ
-  console.log(`[SMS] ${phone} руу баталгаажуулах код: ${code}`);
-
-  return { message: "Verification code sent" };
+    console.log(
+      `[Twilio] Verification sent to ${phone}, SID: ${verification.sid}`,
+    );
+    return { message: "Verification code sent" };
+  } catch (error) {
+    console.error(`[Twilio] Error sending to ${phone}:`, error.message);
+    throw new Error("SMS илгээхэд алдаа гарлаа. Дахин оролдоно уу.");
+  }
 }
 
 async function verifyCode(phone, code) {
@@ -43,26 +31,21 @@ async function verifyCode(phone, code) {
     throw new Error("Phone and code are required");
   }
 
-  const record = await prisma.verificationCode.findFirst({
-    where: {
-      phone,
-      code,
-      used: false,
-      expiresAt: { gt: new Date() },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  try {
+    const check = await client.verify.v2
+      .services(verifySid)
+      .verificationChecks.create({ to: phone, code });
 
-  if (!record) {
-    throw new Error("Invalid or expired code");
+    if (check.status !== "approved") {
+      throw new Error("Invalid or expired code");
+    }
+
+    return { verified: true };
+  } catch (error) {
+    if (error.message === "Invalid or expired code") throw error;
+    console.error(`[Twilio] Verify error for ${phone}:`, error.message);
+    throw new Error("Код шалгахад алдаа гарлаа");
   }
-
-  await prisma.verificationCode.update({
-    where: { id: record.id },
-    data: { used: true },
-  });
-
-  return { verified: true };
 }
 
 module.exports = { sendVerificationCode, verifyCode };

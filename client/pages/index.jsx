@@ -6,12 +6,22 @@ import StaffDashboard from "./components/StaffDashboard";
 
 export default function HomePage() {
   const [user, setUser] = useState(null);
+  const [adminUser, setAdminUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
 
   useEffect(() => {
+    // Check admin auth first
+    const storedAdmin = localStorage.getItem("adminUser");
+    if (storedAdmin) {
+      try {
+        setAdminUser(JSON.parse(storedAdmin));
+        return;
+      } catch {}
+    }
+
     const stored = localStorage.getItem("user");
     if (stored) {
       try {
@@ -45,16 +55,22 @@ export default function HomePage() {
     setUser(null);
   };
 
+  const handleAdminLogout = () => {
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminUser");
+    setAdminUser(null);
+  };
+
+  // Админ dashboard (separate auth)
+  if (adminUser) {
+    return <AdminDashboard user={adminUser} onLogout={handleAdminLogout} />;
+  }
+
   // Нэвтэрсэн хэрэглэгч
   if (user) {
     // Багш / Ажилтан dashboard
     if (user.role === "teacher" || user.role === "staff") {
       return <StaffDashboard user={user} onLogout={handleLogout} />;
-    }
-
-    // Админ dashboard
-    if (user.role === "admin") {
-      return <AdminDashboard user={user} onLogout={handleLogout} />;
     }
 
     // Оюутан dashboard (default)
