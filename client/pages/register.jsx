@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [danLoading, setDanLoading] = useState(false);
 
   const fullPhone = phone.startsWith("+976") ? phone : `+976${phone}`;
 
@@ -89,6 +90,21 @@ export default function RegisterPage() {
     }
   };
 
+  const handleDanRegister = async () => {
+    setDanLoading(true);
+    setMessage("");
+    try {
+      const res = await http.get("/api/auth/dan/login");
+      localStorage.setItem("danState", res.data.state);
+      window.location.href = res.data.authUrl;
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message || "ДАН системд холбогдоход алдаа гарлаа",
+      );
+      setDanLoading(false);
+    }
+  };
+
   const handleResend = async () => {
     if (cooldown > 0) return;
     setIsLoading(true);
@@ -163,6 +179,24 @@ export default function RegisterPage() {
             className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:opacity-50"
           >
             {isLoading ? "Sending code..." : "Send Verification Code"}
+          </button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">эсвэл</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleDanRegister}
+            disabled={danLoading}
+            className="w-full py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-500 hover:to-blue-600 disabled:opacity-50 transition shadow-md"
+          >
+            {danLoading ? "Холбогдож байна..." : "ДАН системээр бүртгүүлэх"}
           </button>
 
           {message && (

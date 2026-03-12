@@ -13,40 +13,6 @@ function decryptProfile(profile) {
   };
 }
 
-async function createProfile(userId, data, ipAddress) {
-  const existing = await prisma.studentProfile.findUnique({
-    where: { userId },
-  });
-  if (existing) {
-    throw new Error("Profile already exists");
-  }
-
-  const profile = await prisma.studentProfile.create({
-    data: {
-      userId,
-      registerNumber: encrypt(data.registerNumber),
-      lastName: data.lastName,
-      firstName: data.firstName,
-      birthDate: new Date(data.birthDate),
-      gender: data.gender,
-      province: data.province,
-      district: data.district,
-      examId: data.examId || null,
-      isVerified: false,
-    },
-  });
-
-  await logAudit({
-    action: "profile.create",
-    userId,
-    targetType: "StudentProfile",
-    targetId: profile.id,
-    ipAddress,
-  });
-
-  return decryptProfile(profile);
-}
-
 async function getProfile(userId, ipAddress) {
   const profile = await prisma.studentProfile.findUnique({
     where: { userId },
@@ -65,23 +31,6 @@ async function getProfile(userId, ipAddress) {
   return decryptProfile(profile);
 }
 
-async function verifyProfile(profileId, adminUserId, ipAddress) {
-  const profile = await prisma.studentProfile.update({
-    where: { id: profileId },
-    data: { isVerified: true },
-  });
-
-  await logAudit({
-    action: "profile.verify",
-    userId: adminUserId,
-    targetType: "StudentProfile",
-    targetId: profileId,
-    ipAddress,
-  });
-
-  return decryptProfile(profile);
-}
-
 async function getAllProfiles(adminUserId, ipAddress) {
   const profiles = await prisma.studentProfile.findMany({
     include: {
@@ -95,4 +44,4 @@ async function getAllProfiles(adminUserId, ipAddress) {
   return profiles.map(decryptProfile);
 }
 
-module.exports = { createProfile, getProfile, verifyProfile, getAllProfiles };
+module.exports = { getProfile, getAllProfiles };

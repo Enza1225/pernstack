@@ -161,18 +161,6 @@ export default function HomePage() {
                             {profile.registerNumber}
                           </span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Төлөв</span>
-                          {profile.isVerified ? (
-                            <span className="text-green-600 font-medium">
-                              Баталгаажсан ✓
-                            </span>
-                          ) : (
-                            <span className="text-yellow-600 font-medium">
-                              Хүлээгдэж буй
-                            </span>
-                          )}
-                        </div>
                         <Link
                           href="/profile"
                           className="block text-center text-xs text-indigo-600 hover:underline pt-1"
@@ -249,15 +237,12 @@ export default function HomePage() {
                   <p className="text-sm text-gray-600 mb-1">
                     {profile.lastName} {profile.firstName}
                   </p>
-                  {profile.isVerified ? (
-                    <span className="text-xs text-green-600 font-medium">
-                      ✅ Баталгаажсан
-                    </span>
-                  ) : (
-                    <span className="text-xs text-yellow-600 font-medium">
-                      ⏳ Хүлээгдэж буй
-                    </span>
-                  )}
+                  <Link
+                    href="/profile"
+                    className="text-xs text-indigo-600 hover:underline"
+                  >
+                    Дэлгэрэнгүй →
+                  </Link>
                 </div>
               )}
             </div>

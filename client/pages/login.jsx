@@ -7,6 +7,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [danLoading, setDanLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -41,6 +42,21 @@ export default function LoginPage() {
       setMessage(error.response?.data?.message || "Нэвтрэхэд алдаа гарлаа");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDanLogin = async () => {
+    setDanLoading(true);
+    setMessage("");
+    try {
+      const res = await http.get("/api/auth/dan/login");
+      localStorage.setItem("danState", res.data.state);
+      window.location.href = res.data.authUrl;
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message || "ДАН системд холбогдоход алдаа гарлаа",
+      );
+      setDanLoading(false);
     }
   };
 
@@ -88,6 +104,24 @@ export default function LoginPage() {
           className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:opacity-50 transition"
         >
           {isLoading ? "Нэвтэрч байна..." : "Нэвтрэх"}
+        </button>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">эсвэл</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleDanLogin}
+          disabled={danLoading}
+          className="w-full py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-500 hover:to-blue-600 disabled:opacity-50 transition shadow-md"
+        >
+          {danLoading ? "Холбогдож байна..." : "ДАН системээр нэвтрэх"}
         </button>
 
         {message && (

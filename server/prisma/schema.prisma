@@ -42,7 +42,6 @@ model StudentProfile {
   province       String // Аймаг / Хот
   district       String // Сум / Дүүрэг
   examId         String? // ЭЕШ дугаар (12 ангийн төгсөгч)
-  isVerified     Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
@@ -81,7 +80,7 @@ model OAuthToken {
 
 model AuditLog {
   id         Int      @id @default(autoincrement())
-  action     String // "profile.view", "profile.create", "profile.verify", "oauth.token", etc.
+  action     String // "profile.view", "oauth.token", etc.
   userId     Int? // Who performed the action (user)
   clientId   String? // OAuth client ID (if API access)
   targetType String? // "StudentProfile", "User", etc.

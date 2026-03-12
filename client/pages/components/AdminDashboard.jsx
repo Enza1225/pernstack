@@ -19,12 +19,10 @@ export default function AdminDashboard({ user, onLogout }) {
   const [deletingStaffId, setDeletingStaffId] = useState(null);
   const [savingPermsId, setSavingPermsId] = useState(null);
 
-  // Profile verification state
+  // Profile state
   const [profiles, setProfiles] = useState([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [profileSearch, setProfileSearch] = useState("");
-  const [profileFilter, setProfileFilter] = useState("all");
-  const [verifyingId, setVerifyingId] = useState(null);
   const [selectedProfile, setSelectedProfile] = useState(null);
 
   // OAuth client state
@@ -154,21 +152,6 @@ export default function AdminDashboard({ user, onLogout }) {
     }
   };
 
-  const handleVerify = async (profileId) => {
-    setVerifyingId(profileId);
-    try {
-      await http.patch(`/api/profile/${profileId}/verify`, {});
-      setProfiles((prev) =>
-        prev.map((p) => (p.id === profileId ? { ...p, isVerified: true } : p)),
-      );
-      setSelectedProfile(null);
-    } catch {
-      alert("Баталгаажуулахад алдаа гарлаа");
-    } finally {
-      setVerifyingId(null);
-    }
-  };
-
   const handleRoleChange = async (userId) => {
     setSaving(true);
     try {
@@ -244,7 +227,6 @@ export default function AdminDashboard({ user, onLogout }) {
 
   const ALL_PERMISSIONS = [
     { key: "user.view", label: "Хэрэглэгч харах" },
-    { key: "profile.verify", label: "Профайл баталгаажуулах" },
     { key: "oauth.manage", label: "OAuth удирдах" },
     { key: "audit.view", label: "Аудит лог харах" },
   ];
@@ -354,12 +336,7 @@ export default function AdminDashboard({ user, onLogout }) {
                 : "bg-gray-800 text-gray-400 hover:text-white border border-gray-700"
             }`}
           >
-            📋 Профайл баталгаажуулалт
-            {profiles.filter((p) => !p.isVerified).length > 0 && (
-              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                {profiles.filter((p) => !p.isVerified).length}
-              </span>
-            )}
+            📋 Профайлууд
           </button>
           <button
             onClick={() => setActiveTab("oauth")}
@@ -775,46 +752,13 @@ export default function AdminDashboard({ user, onLogout }) {
         {activeTab === "profiles" && (
           <>
             {/* Profile stats */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-              <button
-                onClick={() => setProfileFilter("all")}
-                className={`bg-gray-800 rounded-xl border p-5 text-center transition ${
-                  profileFilter === "all"
-                    ? "border-blue-500 ring-1 ring-blue-500"
-                    : "border-gray-700 hover:border-gray-600"
-                }`}
-              >
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-8">
+              <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 text-center">
                 <p className="text-3xl font-bold text-blue-400">
                   {profiles.length}
                 </p>
-                <p className="text-gray-400 text-sm mt-1">Нийт өргөдөл</p>
-              </button>
-              <button
-                onClick={() => setProfileFilter("pending")}
-                className={`bg-gray-800 rounded-xl border p-5 text-center transition ${
-                  profileFilter === "pending"
-                    ? "border-yellow-500 ring-1 ring-yellow-500"
-                    : "border-gray-700 hover:border-gray-600"
-                }`}
-              >
-                <p className="text-3xl font-bold text-yellow-400">
-                  {profiles.filter((p) => !p.isVerified).length}
-                </p>
-                <p className="text-gray-400 text-sm mt-1">Хүлээгдэж буй</p>
-              </button>
-              <button
-                onClick={() => setProfileFilter("verified")}
-                className={`bg-gray-800 rounded-xl border p-5 text-center transition ${
-                  profileFilter === "verified"
-                    ? "border-green-500 ring-1 ring-green-500"
-                    : "border-gray-700 hover:border-gray-600"
-                }`}
-              >
-                <p className="text-3xl font-bold text-green-400">
-                  {profiles.filter((p) => p.isVerified).length}
-                </p>
-                <p className="text-gray-400 text-sm mt-1">Баталгаажсан</p>
-              </button>
+                <p className="text-gray-400 text-sm mt-1">Нийт профайл</p>
+              </div>
             </div>
 
             {/* Profiles table */}
@@ -825,9 +769,9 @@ export default function AdminDashboard({ user, onLogout }) {
                     📋
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg">Оюутны өргөдлүүд</h3>
+                    <h3 className="font-semibold text-lg">Оюутны профайлууд</h3>
                     <p className="text-xs text-gray-500">
-                      Профайл мэдээлэл шалгаж баталгаажуулах
+                      ДАН системээс автоматаар бүртгэгдсэн мэдээлэл
                     </p>
                   </div>
                 </div>
@@ -858,17 +802,11 @@ export default function AdminDashboard({ user, onLogout }) {
                         <th className="text-left px-5 py-3">Утас</th>
                         <th className="text-left px-5 py-3">Аймаг</th>
                         <th className="text-left px-5 py-3">Огноо</th>
-                        <th className="text-left px-5 py-3">Төлөв</th>
                         <th className="text-left px-5 py-3">Үйлдэл</th>
                       </tr>
                     </thead>
                     <tbody>
                       {profiles
-                        .filter((p) => {
-                          if (profileFilter === "pending") return !p.isVerified;
-                          if (profileFilter === "verified") return p.isVerified;
-                          return true;
-                        })
                         .filter((p) => {
                           if (!profileSearch) return true;
                           const q = profileSearch.toLowerCase();
@@ -902,34 +840,12 @@ export default function AdminDashboard({ user, onLogout }) {
                               )}
                             </td>
                             <td className="px-5 py-3">
-                              {p.isVerified ? (
-                                <span className="text-xs px-2 py-1 rounded-full font-medium bg-green-900/50 text-green-400">
-                                  Баталгаажсан ✓
-                                </span>
-                              ) : (
-                                <span className="text-xs px-2 py-1 rounded-full font-medium bg-yellow-900/50 text-yellow-400">
-                                  Хүлээгдэж буй
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-5 py-3">
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => setSelectedProfile(p)}
-                                  className="text-xs text-blue-400 hover:text-blue-300 transition"
-                                >
-                                  Дэлгэрэнгүй
-                                </button>
-                                {!p.isVerified && (
-                                  <button
-                                    onClick={() => handleVerify(p.id)}
-                                    disabled={verifyingId === p.id}
-                                    className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition disabled:opacity-50"
-                                  >
-                                    {verifyingId === p.id ? "..." : "Батлах"}
-                                  </button>
-                                )}
-                              </div>
+                              <button
+                                onClick={() => setSelectedProfile(p)}
+                                className="text-xs text-blue-400 hover:text-blue-300 transition"
+                              >
+                                Дэлгэрэнгүй
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -1386,31 +1302,8 @@ export default function AdminDashboard({ user, onLogout }) {
                     {selectedProfile.user?.phone || "—"}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Төлөв</span>
-                  {selectedProfile.isVerified ? (
-                    <span className="text-green-400 font-medium">
-                      Баталгаажсан ✓
-                    </span>
-                  ) : (
-                    <span className="text-yellow-400 font-medium">
-                      Хүлээгдэж буй
-                    </span>
-                  )}
-                </div>
               </div>
               <div className="mt-6 flex gap-3">
-                {!selectedProfile.isVerified && (
-                  <button
-                    onClick={() => handleVerify(selectedProfile.id)}
-                    disabled={verifyingId === selectedProfile.id}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-lg font-medium transition disabled:opacity-50"
-                  >
-                    {verifyingId === selectedProfile.id
-                      ? "Баталгаажуулж байна..."
-                      : "✓ Баталгаажуулах"}
-                  </button>
-                )}
                 <button
                   onClick={() => setSelectedProfile(null)}
                   className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2.5 rounded-lg font-medium transition"

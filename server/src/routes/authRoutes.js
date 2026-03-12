@@ -10,6 +10,7 @@ const {
 } = require("../controllers/authController");
 const { authenticate, authorize } = require("../middleware/errorHandler");
 const { authenticateAdmin } = require("./adminAuthRoutes");
+const { danLogin, danCallback } = require("../controllers/danController");
 
 const router = express.Router();
 
@@ -31,6 +32,10 @@ router.post("/verify-code", authLimiter, verify);
 router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
 router.post("/login-with-code", authLimiter, loginWithCode);
+
+// DAN system auth
+router.get("/dan/login", authLimiter, danLogin);
+router.post("/dan/callback", authLimiter, danCallback);
 
 // Protected routes
 router.get("/me", authenticate, getMe);
@@ -176,12 +181,7 @@ router.patch(
         .json({ success: false, message: "permissions массив байх ёстой" });
     }
 
-    const VALID_PERMISSIONS = [
-      "user.view",
-      "profile.verify",
-      "oauth.manage",
-      "audit.view",
-    ];
+    const VALID_PERMISSIONS = ["user.view", "oauth.manage", "audit.view"];
     const filtered = permissions.filter((p) => VALID_PERMISSIONS.includes(p));
 
     try {
