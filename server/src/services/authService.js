@@ -20,7 +20,7 @@ function verifyToken(token) {
   return jwt.verify(token, JWT_SECRET);
 }
 
-async function registerUser(phone, password, name, role = "user") {
+async function registerUser(phone, password, name, role = "student") {
   if (!phone || !password) {
     throw new Error("Phone and password are required");
   }
