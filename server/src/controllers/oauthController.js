@@ -86,7 +86,8 @@ async function adminCreateClient(req, res) {
     });
     res.status(201).json({ success: true, client });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Create client error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }
 
@@ -109,7 +110,8 @@ async function adminUpdateClientIps(req, res) {
     });
     res.json({ success: true, client });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Update client IPs error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }
 
@@ -119,7 +121,8 @@ async function adminGetClients(req, res) {
     const clients = await getAllClients();
     res.json({ success: true, clients });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Get clients error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }
 
@@ -131,7 +134,8 @@ async function adminToggleClient(req, res) {
     const client = await toggleClient(parseInt(id), isActive);
     res.json({ success: true, client });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Toggle client error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }
 
@@ -142,7 +146,8 @@ async function adminDeleteClient(req, res) {
     await deleteClient(parseInt(id));
     res.json({ success: true, message: "Client deleted" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Delete client error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }
 

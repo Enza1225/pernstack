@@ -65,7 +65,6 @@ async function adminVerifyTotp(req, res) {
 
     res.json({
       success: true,
-      token: result.token,
       admin: result.admin,
     });
   } catch (error) {
@@ -124,7 +123,6 @@ async function adminEnableTotp(req, res) {
 
     res.json({
       success: true,
-      token: loginResult.token,
       admin: loginResult.admin,
       message: "TOTP амжилттай идэвхжлээ",
     });
@@ -148,7 +146,8 @@ async function adminMe(req, res) {
     }
     res.json({ success: true, admin });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("adminMe error:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 }
 

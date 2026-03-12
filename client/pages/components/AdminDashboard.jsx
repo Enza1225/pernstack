@@ -43,9 +43,6 @@ export default function AdminDashboard({ user, onLogout }) {
   const [auditPage, setAuditPage] = useState(0);
   const [auditFilter, setAuditFilter] = useState("");
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
-
   useEffect(() => {
     fetchUsers();
     fetchProfiles();
@@ -55,9 +52,7 @@ export default function AdminDashboard({ user, onLogout }) {
 
   const fetchUsers = async () => {
     try {
-      const res = await http.get("/api/auth/admin/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await http.get("/api/auth/admin/users", {});
       setUsers(res.data.users || []);
     } catch {
       // ignore
@@ -69,9 +64,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const fetchProfiles = async () => {
     setLoadingProfiles(true);
     try {
-      const res = await http.get("/api/profile/all", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await http.get("/api/profile/all", {});
       setProfiles(res.data.profiles || []);
     } catch {
       // ignore
@@ -83,9 +76,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const fetchOAuthClients = async () => {
     setLoadingClients(true);
     try {
-      const res = await http.get("/oauth/clients", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await http.get("/oauth/clients", {});
       setOauthClients(res.data.clients || []);
     } catch {
       // ignore
@@ -100,7 +91,6 @@ export default function AdminDashboard({ user, onLogout }) {
       const params = { limit: 30, offset: page * 30 };
       if (action) params.action = action;
       const res = await http.get("/api/audit", {
-        headers: { Authorization: `Bearer ${token}` },
         params,
       });
       setAuditLogs(res.data.logs || []);
@@ -116,11 +106,7 @@ export default function AdminDashboard({ user, onLogout }) {
     if (!newClientName.trim()) return;
     setCreatingClient(true);
     try {
-      const res = await http.post(
-        "/oauth/clients",
-        { name: newClientName },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const res = await http.post("/oauth/clients", { name: newClientName });
       setNewClientSecret(res.data.client);
       setNewClientName("");
       fetchOAuthClients();
@@ -133,11 +119,7 @@ export default function AdminDashboard({ user, onLogout }) {
 
   const handleToggleClient = async (id, isActive) => {
     try {
-      await http.patch(
-        `/oauth/clients/${id}`,
-        { isActive },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await http.patch(`/oauth/clients/${id}`, { isActive });
       setOauthClients((prev) =>
         prev.map((c) => (c.id === id ? { ...c, isActive } : c)),
       );
@@ -149,9 +131,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const handleDeleteClient = async (id) => {
     if (!confirm("Энэ клиентийг устгах уу?")) return;
     try {
-      await http.delete(`/oauth/clients/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await http.delete(`/oauth/clients/${id}`, {});
       setOauthClients((prev) => prev.filter((c) => c.id !== id));
     } catch {
       alert("Устгахад алдаа гарлаа");
@@ -164,11 +144,7 @@ export default function AdminDashboard({ user, onLogout }) {
         .split(",")
         .map((ip) => ip.trim())
         .filter(Boolean);
-      await http.put(
-        `/oauth/clients/${id}/ips`,
-        { allowedIps },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await http.put(`/oauth/clients/${id}/ips`, { allowedIps });
       setOauthClients((prev) =>
         prev.map((c) => (c.id === id ? { ...c, allowedIps } : c)),
       );
@@ -181,11 +157,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const handleVerify = async (profileId) => {
     setVerifyingId(profileId);
     try {
-      await http.patch(
-        `/api/profile/${profileId}/verify`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      await http.patch(`/api/profile/${profileId}/verify`, {});
       setProfiles((prev) =>
         prev.map((p) => (p.id === profileId ? { ...p, isVerified: true } : p)),
       );
@@ -200,11 +172,9 @@ export default function AdminDashboard({ user, onLogout }) {
   const handleRoleChange = async (userId) => {
     setSaving(true);
     try {
-      const res = await http.patch(
-        `/api/auth/admin/users/${userId}/role`,
-        { role: editRole },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const res = await http.patch(`/api/auth/admin/users/${userId}/role`, {
+        role: editRole,
+      });
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? res.data.user : u)),
       );
@@ -223,11 +193,11 @@ export default function AdminDashboard({ user, onLogout }) {
       const fullPhone = newStaffPhone.startsWith("+976")
         ? newStaffPhone
         : `+976${newStaffPhone}`;
-      const res = await http.post(
-        "/api/auth/admin/create-staff",
-        { phone: fullPhone, name: newStaffName || null, role: newStaffRole },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      const res = await http.post("/api/auth/admin/create-staff", {
+        phone: fullPhone,
+        name: newStaffName || null,
+        role: newStaffRole,
+      });
       setUsers((prev) => [res.data.user, ...prev]);
       setNewStaffPhone("");
       setNewStaffName("");
@@ -243,9 +213,7 @@ export default function AdminDashboard({ user, onLogout }) {
     if (!confirm("Энэ ажилтныг устгах уу?")) return;
     setDeletingStaffId(userId);
     try {
-      await http.delete(`/api/auth/admin/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await http.delete(`/api/auth/admin/users/${userId}`, {});
       setUsers((prev) => prev.filter((u) => u.id !== userId));
     } catch (err) {
       alert(err.response?.data?.message || "Устгахад алдаа гарлаа");
@@ -263,7 +231,6 @@ export default function AdminDashboard({ user, onLogout }) {
       const res = await http.patch(
         `/api/auth/admin/users/${userId}/permissions`,
         { permissions: newPerms },
-        { headers: { Authorization: `Bearer ${token}` } },
       );
       setUsers((prev) =>
         prev.map((u) => (u.id === userId ? res.data.user : u)),

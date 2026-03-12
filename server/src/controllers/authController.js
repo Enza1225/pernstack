@@ -38,8 +38,8 @@ async function verify(req, res) {
 
 async function register(req, res) {
   try {
-    const { phone, password, name, role } = req.body;
-    const user = await registerUser(phone, password, name, role);
+    const { phone, password, name } = req.body;
+    const user = await registerUser(phone, password, name);
     res.status(201).json({
       success: true,
       message: "Registration successful",

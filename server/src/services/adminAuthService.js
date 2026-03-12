@@ -9,6 +9,7 @@ const {
 } = require("otplib");
 const QRCode = require("qrcode");
 const prisma = require("../config/prisma");
+const { encrypt, decrypt } = require("../config/encryption");
 
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
@@ -158,8 +159,9 @@ async function verifyTotpAndLogin(adminId, totpCode) {
     throw new Error("TOTP тохиргоо хийгдээгүй байна");
   }
 
+  const decryptedSecret = decrypt(admin.totpSecret);
   const result = verifySync({
-    secret: admin.totpSecret,
+    secret: decryptedSecret,
     token: totpCode,
     crypto,
     base32,
@@ -202,10 +204,11 @@ async function setupTotp(adminId) {
   });
   const qrCodeDataUrl = await QRCode.toDataURL(otpauth);
 
-  // Save secret (not yet enabled until verified)
+  // Save encrypted secret (not yet enabled until verified)
+  const encryptedSecret = encrypt(secret);
   await prisma.admin.update({
     where: { id: adminId },
-    data: { totpSecret: secret },
+    data: { totpSecret: encryptedSecret },
   });
 
   return {
@@ -222,8 +225,9 @@ async function enableTotp(adminId, totpCode) {
     throw new Error("TOTP тохиргоо эхлээгүй байна");
   }
 
+  const decryptedSecret = decrypt(admin.totpSecret);
   const result = verifySync({
-    secret: admin.totpSecret,
+    secret: decryptedSecret,
     token: totpCode,
     crypto,
     base32,
@@ -280,8 +284,9 @@ async function getQrCode(adminId) {
     throw new Error("TOTP тохиргоо хийгдээгүй байна");
   }
 
+  const decryptedSecret = decrypt(admin.totpSecret);
   const otpauth = generateURI({
-    secret: admin.totpSecret,
+    secret: decryptedSecret,
     issuer: APP_NAME,
     label: admin.email,
   });
@@ -289,7 +294,7 @@ async function getQrCode(adminId) {
 
   return {
     qrCode: qrCodeDataUrl,
-    secret: admin.totpSecret,
+    secret: decryptedSecret,
   };
 }
 

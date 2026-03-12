@@ -4,6 +4,9 @@ if (!process.env.ENCRYPTION_KEY) {
   throw new Error("ENCRYPTION_KEY environment variable is required");
 }
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+if (Buffer.from(ENCRYPTION_KEY, "utf8").length !== 32) {
+  throw new Error("ENCRYPTION_KEY must be exactly 32 characters");
+}
 const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
 

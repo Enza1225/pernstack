@@ -22,14 +22,17 @@ function verifyToken(token) {
   return jwt.verify(token, JWT_SECRET);
 }
 
-async function registerUser(phone, password, name, role = "student") {
+async function registerUser(phone, password, name) {
   if (!phone || !password) {
     throw new Error("Phone and password are required");
   }
 
-  if (!VALID_ROLES.includes(role)) {
-    throw new Error("Invalid role");
+  if (password.length < 8) {
+    throw new Error("Password must be at least 8 characters");
   }
+
+  // Public registration is always student role
+  const role = "student";
 
   const existing = await prisma.user.findUnique({ where: { phone } });
   if (existing) {
@@ -64,7 +67,9 @@ async function loginUser(phone, password, expectedRole = null) {
 
   const user = await prisma.user.findUnique({ where: { phone } });
   if (!user) {
-    throw new Error("User not found");
+    // Timing-safe: still hash to prevent timing attacks
+    await bcrypt.hash("dummy", SALT_ROUNDS);
+    throw new Error("Утас эсвэл нууц үг буруу");
   }
 
   if (!user.password) {
@@ -73,7 +78,7 @@ async function loginUser(phone, password, expectedRole = null) {
 
   const isValid = await bcrypt.compare(password, user.password);
   if (!isValid) {
-    throw new Error("Invalid password");
+    throw new Error("Утас эсвэл нууц үг буруу");
   }
 
   // Role check: if expectedRole is provided, user must match

@@ -55,8 +55,10 @@ export default function HomePage() {
     setUser(null);
   };
 
-  const handleAdminLogout = () => {
-    localStorage.removeItem("adminToken");
+  const handleAdminLogout = async () => {
+    try {
+      await http.post("/api/admin/auth/logout");
+    } catch {}
     localStorage.removeItem("adminUser");
     setAdminUser(null);
   };

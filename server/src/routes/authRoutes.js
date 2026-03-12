@@ -1,4 +1,5 @@
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const {
   register,
   login,
@@ -12,11 +13,24 @@ const { authenticateAdmin } = require("./adminAuthRoutes");
 
 const router = express.Router();
 
-router.post("/send-code", sendCode);
-router.post("/verify-code", verify);
-router.post("/register", register);
-router.post("/login", login);
-router.post("/login-with-code", loginWithCode);
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+const smsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 2,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.post("/send-code", smsLimiter, sendCode);
+router.post("/verify-code", authLimiter, verify);
+router.post("/register", authLimiter, register);
+router.post("/login", authLimiter, login);
+router.post("/login-with-code", authLimiter, loginWithCode);
 
 // Protected routes
 router.get("/me", authenticate, getMe);
@@ -73,8 +87,9 @@ router.patch("/admin/users/:id/role", authenticateAdmin, async (req, res) => {
       },
     });
     res.json({ success: true, user: updated });
-  } catch {
-    res.status(404).json({ success: false, message: "User not found" });
+  } catch (error) {
+    console.error("Update role error:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
@@ -115,7 +130,8 @@ router.post("/admin/create-staff", authenticateAdmin, async (req, res) => {
     });
     res.status(201).json({ success: true, user });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Create staff error:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
@@ -140,7 +156,8 @@ router.delete("/admin/users/:id", authenticateAdmin, async (req, res) => {
     await prisma.user.delete({ where: { id: userId } });
     res.json({ success: true, message: "Амжилттай устгалаа" });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Delete user error:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 

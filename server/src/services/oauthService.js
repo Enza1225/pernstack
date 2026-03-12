@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 const prisma = require("../config/prisma");
 
 if (!process.env.JWT_SECRET) {
@@ -19,10 +20,12 @@ async function createClient(name, allowedIps = []) {
   const clientId = uuidv4();
   const clientSecret = generateClientSecret();
 
+  const hashedSecret = await bcrypt.hash(clientSecret, 10);
+
   const client = await prisma.oAuthClient.create({
     data: {
       clientId,
-      clientSecret, // In production, hash this before storing
+      clientSecret: hashedSecret,
       name,
       allowedIps,
     },
@@ -58,7 +61,8 @@ async function issueToken(clientId, clientSecret, grantType, requestIp) {
     throw new Error("Client is deactivated");
   }
 
-  if (client.clientSecret !== clientSecret) {
+  const isSecretValid = await bcrypt.compare(clientSecret, client.clientSecret);
+  if (!isSecretValid) {
     throw new Error("Invalid client_secret");
   }
 
@@ -66,9 +70,7 @@ async function issueToken(clientId, clientSecret, grantType, requestIp) {
   if (client.allowedIps && client.allowedIps.length > 0 && requestIp) {
     const normalizedIp = requestIp.replace("::ffff:", "");
     if (!client.allowedIps.includes(normalizedIp)) {
-      throw new Error(
-        `Access denied. IP ${normalizedIp} is not whitelisted for this client.`,
-      );
+      throw new Error("Access denied. IP is not whitelisted for this client.");
     }
   }
 

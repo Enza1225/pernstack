@@ -58,7 +58,6 @@ export default function AdminLoginPage() {
         totpCode,
       });
 
-      localStorage.setItem("adminToken", res.data.token);
       localStorage.setItem("adminUser", JSON.stringify(res.data.admin));
 
       setMessage("TOTP амжилттай идэвхжлээ!");
@@ -86,7 +85,6 @@ export default function AdminLoginPage() {
         totpCode,
       });
 
-      localStorage.setItem("adminToken", res.data.token);
       localStorage.setItem("adminUser", JSON.stringify(res.data.admin));
 
       setMessage("Амжилттай нэвтэрлээ!");

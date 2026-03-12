@@ -12,7 +12,10 @@ async function main() {
   if (!process.env.ADMIN_DEFAULT_PASSWORD) {
     throw new Error("ADMIN_DEFAULT_PASSWORD environment variable is required");
   }
-  const hashedPassword = await bcrypt.hash(process.env.ADMIN_DEFAULT_PASSWORD, 12);
+  const hashedPassword = await bcrypt.hash(
+    process.env.ADMIN_DEFAULT_PASSWORD,
+    12,
+  );
 
   // Update existing admin or create new one
   const existing = await pool.query(`SELECT id FROM "User" WHERE phone = $1`, [
