@@ -11,6 +11,14 @@ export default function AdminDashboard({ user, onLogout }) {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("users");
 
+  // Add staff state
+  const [newStaffPhone, setNewStaffPhone] = useState("");
+  const [newStaffName, setNewStaffName] = useState("");
+  const [newStaffRole, setNewStaffRole] = useState("staff");
+  const [addingStaff, setAddingStaff] = useState(false);
+  const [deletingStaffId, setDeletingStaffId] = useState(null);
+  const [savingPermsId, setSavingPermsId] = useState(null);
+
   // Profile verification state
   const [profiles, setProfiles] = useState([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
@@ -201,12 +209,78 @@ export default function AdminDashboard({ user, onLogout }) {
         prev.map((u) => (u.id === userId ? res.data.user : u)),
       );
       setEditingId(null);
-    } catch {
-      alert("Role өөрчлөхөд алдаа гарлаа");
+    } catch (err) {
+      alert(err.response?.data?.message || "Role өөрчлөхөд алдаа гарлаа");
     } finally {
       setSaving(false);
     }
   };
+
+  const handleAddStaff = async () => {
+    if (!newStaffPhone.trim()) return;
+    setAddingStaff(true);
+    try {
+      const fullPhone = newStaffPhone.startsWith("+976")
+        ? newStaffPhone
+        : `+976${newStaffPhone}`;
+      const res = await http.post(
+        "/api/auth/admin/create-staff",
+        { phone: fullPhone, name: newStaffName || null, role: newStaffRole },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setUsers((prev) => [res.data.user, ...prev]);
+      setNewStaffPhone("");
+      setNewStaffName("");
+      setNewStaffRole("staff");
+    } catch (err) {
+      alert(err.response?.data?.message || "Ажилтан нэмэхэд алдаа гарлаа");
+    } finally {
+      setAddingStaff(false);
+    }
+  };
+
+  const handleDeleteStaff = async (userId) => {
+    if (!confirm("Энэ ажилтныг устгах уу?")) return;
+    setDeletingStaffId(userId);
+    try {
+      await http.delete(`/api/auth/admin/users/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+    } catch (err) {
+      alert(err.response?.data?.message || "Устгахад алдаа гарлаа");
+    } finally {
+      setDeletingStaffId(null);
+    }
+  };
+
+  const handleTogglePermission = async (userId, perm, currentPerms) => {
+    setSavingPermsId(userId);
+    const newPerms = currentPerms.includes(perm)
+      ? currentPerms.filter((p) => p !== perm)
+      : [...currentPerms, perm];
+    try {
+      const res = await http.patch(
+        `/api/auth/admin/users/${userId}/permissions`,
+        { permissions: newPerms },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? res.data.user : u)),
+      );
+    } catch (err) {
+      alert(err.response?.data?.message || "Эрх өөрчлөхөд алдаа гарлаа");
+    } finally {
+      setSavingPermsId(null);
+    }
+  };
+
+  const ALL_PERMISSIONS = [
+    { key: "user.view", label: "Хэрэглэгч харах" },
+    { key: "profile.verify", label: "Профайл баталгаажуулах" },
+    { key: "oauth.manage", label: "OAuth удирдах" },
+    { key: "audit.view", label: "Аудит лог харах" },
+  ];
 
   const roleLabels = {
     student: "Оюутан",
@@ -285,6 +359,25 @@ export default function AdminDashboard({ user, onLogout }) {
             }`}
           >
             👥 Хэрэглэгчид
+          </button>
+          <button
+            onClick={() => setActiveTab("staff")}
+            className={`px-5 py-2.5 rounded-lg font-medium text-sm transition flex items-center gap-2 ${
+              activeTab === "staff"
+                ? "bg-indigo-600 text-white"
+                : "bg-gray-800 text-gray-400 hover:text-white border border-gray-700"
+            }`}
+          >
+            🏢 Ажилтан
+            {users.filter((u) => ["staff", "teacher"].includes(u.role)).length >
+              0 && (
+              <span className="bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full">
+                {
+                  users.filter((u) => ["staff", "teacher"].includes(u.role))
+                    .length
+                }
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab("profiles")}
@@ -452,18 +545,205 @@ export default function AdminDashboard({ user, onLogout }) {
                           <td className="px-5 py-3">{u.name || "—"}</td>
                           <td className="px-5 py-3 text-gray-300">{u.phone}</td>
                           <td className="px-5 py-3">
-                            {editingId === u.id ? (
-                              <select
-                                value={editRole}
-                                onChange={(e) => setEditRole(e.target.value)}
-                                className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              >
-                                <option value="student">Оюутан</option>
-                                <option value="teacher">Багш</option>
-                                <option value="staff">Ажилтан</option>
-                                <option value="admin">Админ</option>
-                              </select>
+                            <span
+                              className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                roleColors[u.role] ||
+                                "bg-gray-700 text-gray-300"
+                              }`}
+                            >
+                              {roleLabels[u.role] || u.role}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3 text-gray-400">
+                            {new Date(u.createdAt).toLocaleDateString("mn-MN")}
+                          </td>
+                          <td className="px-5 py-3">
+                            {u.role !== "student" ? (
+                              editingId === u.id ? (
+                                <div className="flex gap-2">
+                                  <select
+                                    value={editRole}
+                                    onChange={(e) =>
+                                      setEditRole(e.target.value)
+                                    }
+                                    className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  >
+                                    <option value="teacher">Багш</option>
+                                    <option value="staff">Ажилтан</option>
+                                    <option value="admin">Админ</option>
+                                  </select>
+                                  <button
+                                    onClick={() => handleRoleChange(u.id)}
+                                    disabled={saving}
+                                    className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition disabled:opacity-50"
+                                  >
+                                    {saving ? "..." : "Хадгалах"}
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingId(null)}
+                                    className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded transition"
+                                  >
+                                    Болих
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setEditingId(u.id);
+                                    setEditRole(u.role);
+                                  }}
+                                  className="text-xs text-blue-400 hover:text-blue-300 transition"
+                                >
+                                  Эрх солих
+                                </button>
+                              )
                             ) : (
+                              <span className="text-xs text-gray-500">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {activeTab === "staff" && (
+          <>
+            {/* Add staff form */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 p-6 mb-6">
+              <h3 className="font-semibold text-lg mb-4">
+                Ажилтан / Багш нэмэх
+              </h3>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-1">
+                  <span className="inline-flex items-center px-3 bg-gray-700 border border-gray-600 border-r-0 rounded-l-lg text-gray-400 text-sm">
+                    +976
+                  </span>
+                  <input
+                    type="tel"
+                    value={newStaffPhone}
+                    onChange={(e) =>
+                      setNewStaffPhone(e.target.value.replace(/[^0-9]/g, ""))
+                    }
+                    placeholder="Утасны дугаар"
+                    maxLength={8}
+                    className="flex-1 bg-gray-700 border border-gray-600 rounded-r-lg px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={newStaffName}
+                  onChange={(e) => setNewStaffName(e.target.value)}
+                  placeholder="Нэр (заавал биш)"
+                  className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <select
+                  value={newStaffRole}
+                  onChange={(e) => setNewStaffRole(e.target.value)}
+                  className="bg-gray-700 border border-gray-600 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="staff">Ажилтан</option>
+                  <option value="teacher">Багш</option>
+                  <option value="admin">Админ</option>
+                </select>
+                <button
+                  onClick={handleAddStaff}
+                  disabled={addingStaff || newStaffPhone.length < 8}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition disabled:opacity-50"
+                >
+                  {addingStaff ? "Нэмж байна..." : "+ Нэмэх"}
+                </button>
+              </div>
+            </div>
+
+            {/* Staff stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 text-center">
+                <p className="text-3xl font-bold text-indigo-400">
+                  {users.filter((u) => u.role !== "student").length}
+                </p>
+                <p className="text-gray-400 text-sm mt-1">Нийт ажилтан</p>
+              </div>
+              <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 text-center">
+                <p className="text-3xl font-bold text-purple-400">
+                  {roleCounts.teacher || 0}
+                </p>
+                <p className="text-gray-400 text-sm mt-1">Багш</p>
+              </div>
+              <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 text-center">
+                <p className="text-3xl font-bold text-blue-400">
+                  {roleCounts.staff || 0}
+                </p>
+                <p className="text-gray-400 text-sm mt-1">Ажилтан</p>
+              </div>
+              <div className="bg-gray-800 rounded-xl border border-gray-700 p-5 text-center">
+                <p className="text-3xl font-bold text-red-400">
+                  {roleCounts.admin || 0}
+                </p>
+                <p className="text-gray-400 text-sm mt-1">Админ</p>
+              </div>
+            </div>
+
+            {/* Staff list with permissions */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+              <div className="p-5 border-b border-gray-700">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-700 rounded-lg flex items-center justify-center text-xl">
+                    🏢
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Бүх ажилтнууд</h3>
+                    <p className="text-xs text-gray-500">Эрх удирдах, устгах</p>
+                  </div>
+                </div>
+              </div>
+
+              {loadingUsers ? (
+                <div className="text-center py-10 text-gray-500">
+                  Ачааллаж байна...
+                </div>
+              ) : users.filter((u) => u.role !== "student").length === 0 ? (
+                <div className="text-center py-10 text-gray-500">
+                  Ажилтан бүртгэгдээгүй байна
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-700 text-gray-400">
+                        <th className="text-left px-5 py-3">ID</th>
+                        <th className="text-left px-5 py-3">Нэр</th>
+                        <th className="text-left px-5 py-3">Утас</th>
+                        <th className="text-left px-5 py-3">Эрх</th>
+                        {ALL_PERMISSIONS.map((p) => (
+                          <th
+                            key={p.key}
+                            className="text-center px-3 py-3 text-xs"
+                          >
+                            {p.label}
+                          </th>
+                        ))}
+                        <th className="text-left px-5 py-3">Үйлдэл</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {users
+                        .filter((u) => u.role !== "student")
+                        .map((u) => (
+                          <tr
+                            key={u.id}
+                            className="border-b border-gray-700/50 hover:bg-gray-700/30 transition"
+                          >
+                            <td className="px-5 py-3 text-gray-400">{u.id}</td>
+                            <td className="px-5 py-3">{u.name || "—"}</td>
+                            <td className="px-5 py-3 text-gray-300">
+                              {u.phone}
+                            </td>
+                            <td className="px-5 py-3">
                               <span
                                 className={`text-xs px-2 py-1 rounded-full font-medium ${
                                   roleColors[u.role] ||
@@ -472,42 +752,51 @@ export default function AdminDashboard({ user, onLogout }) {
                               >
                                 {roleLabels[u.role] || u.role}
                               </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-3 text-gray-400">
-                            {new Date(u.createdAt).toLocaleDateString("mn-MN")}
-                          </td>
-                          <td className="px-5 py-3">
-                            {editingId === u.id ? (
-                              <div className="flex gap-2">
+                            </td>
+                            {ALL_PERMISSIONS.map((p) => (
+                              <td key={p.key} className="text-center px-3 py-3">
+                                {u.role === "admin" ? (
+                                  <span className="text-green-400 text-xs">
+                                    ✓
+                                  </span>
+                                ) : (
+                                  <input
+                                    type="checkbox"
+                                    checked={(u.permissions || []).includes(
+                                      p.key,
+                                    )}
+                                    onChange={() =>
+                                      handleTogglePermission(
+                                        u.id,
+                                        p.key,
+                                        u.permissions || [],
+                                      )
+                                    }
+                                    disabled={savingPermsId === u.id}
+                                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer disabled:opacity-50"
+                                  />
+                                )}
+                              </td>
+                            ))}
+                            <td className="px-5 py-3">
+                              {u.id === user.id ? (
+                                <span className="text-xs text-gray-500">
+                                  Та
+                                </span>
+                              ) : u.role === "admin" ? (
+                                <span className="text-xs text-gray-500">—</span>
+                              ) : (
                                 <button
-                                  onClick={() => handleRoleChange(u.id)}
-                                  disabled={saving}
-                                  className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition disabled:opacity-50"
+                                  onClick={() => handleDeleteStaff(u.id)}
+                                  disabled={deletingStaffId === u.id}
+                                  className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition disabled:opacity-50"
                                 >
-                                  {saving ? "..." : "Хадгалах"}
+                                  {deletingStaffId === u.id ? "..." : "Устгах"}
                                 </button>
-                                <button
-                                  onClick={() => setEditingId(null)}
-                                  className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded transition"
-                                >
-                                  Болих
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setEditingId(u.id);
-                                  setEditRole(u.role);
-                                }}
-                                className="text-xs text-blue-400 hover:text-blue-300 transition"
-                              >
-                                Эрх солих
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                              )}
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>

@@ -65,6 +65,10 @@ async function loginUser(phone, password, expectedRole = null) {
     throw new Error("User not found");
   }
 
+  if (!user.password) {
+    throw new Error("Нууц үгээр нэвтрэх боломжгүй. Утасны код ашиглана уу.");
+  }
+
   const isValid = await bcrypt.compare(password, user.password);
   if (!isValid) {
     throw new Error("Invalid password");

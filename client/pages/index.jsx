@@ -8,6 +8,8 @@ export default function HomePage() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showNotif, setShowNotif] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -66,22 +68,124 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Navbar */}
-        <nav className="bg-white shadow">
+        <nav className="bg-white shadow relative z-30">
           <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
             <h1 className="text-xl font-bold text-indigo-600">MNUAC</h1>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-medium">
                 {roleLabels[user.role] || user.role}
               </span>
-              <span className="font-medium text-gray-700 text-sm">
-                {user.name || user.phone}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="text-sm text-red-500 hover:text-red-700 transition"
-              >
-                Гарах
-              </button>
+
+              {/* Notification icon */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowNotif(!showNotif);
+                    setShowProfile(false);
+                  }}
+                  className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition text-gray-600"
+                >
+                  🔔
+                </button>
+                {showNotif && (
+                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100 font-semibold text-gray-800 text-sm">
+                      Мэдэгдэл
+                    </div>
+                    <div className="p-6 text-center text-gray-400">
+                      <p className="text-3xl mb-1">📭</p>
+                      <p className="text-xs">Шинэ мэдэгдэл байхгүй</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Profile icon */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowProfile(!showProfile);
+                    setShowNotif(false);
+                  }}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-indigo-100 hover:bg-indigo-200 transition text-indigo-700 font-bold text-sm"
+                >
+                  {(user.name || user.phone).charAt(0).toUpperCase()}
+                </button>
+                {showProfile && (
+                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div className="p-4 border-b border-gray-100">
+                      <p className="font-semibold text-gray-800">
+                        {user.name || "—"}
+                      </p>
+                      <p className="text-xs text-gray-500">{user.phone}</p>
+                    </div>
+                    {profileLoading ? (
+                      <div className="p-4 text-sm text-gray-400">
+                        Ачааллаж байна...
+                      </div>
+                    ) : profile ? (
+                      <div className="p-4 space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Овог</span>
+                          <span className="text-gray-800 font-medium">
+                            {profile.lastName}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Нэр</span>
+                          <span className="text-gray-800 font-medium">
+                            {profile.firstName}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">РД</span>
+                          <span className="text-gray-800 font-mono text-xs">
+                            {profile.registerNumber}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Төлөв</span>
+                          {profile.isVerified ? (
+                            <span className="text-green-600 font-medium">
+                              Баталгаажсан ✓
+                            </span>
+                          ) : (
+                            <span className="text-yellow-600 font-medium">
+                              Хүлээгдэж буй
+                            </span>
+                          )}
+                        </div>
+                        <Link
+                          href="/profile"
+                          className="block text-center text-xs text-indigo-600 hover:underline pt-1"
+                        >
+                          Дэлгэрэнгүй →
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="p-4">
+                        <p className="text-sm text-orange-600 mb-2">
+                          Мэдээлэл бөглөөгүй
+                        </p>
+                        <Link
+                          href="/profile"
+                          className="text-sm text-indigo-600 hover:underline"
+                        >
+                          Мэдээлэл бөглөх →
+                        </Link>
+                      </div>
+                    )}
+                    <div className="border-t border-gray-100 p-2">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition"
+                      >
+                        Гарах
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </nav>
@@ -100,7 +204,7 @@ export default function HomePage() {
 
           {/* Quick Info Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Profile status card */}
+            {/* Profile status */}
             <div className="bg-white rounded-xl shadow-sm border p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-xl">
@@ -113,7 +217,7 @@ export default function HomePage() {
               ) : !profile ? (
                 <div>
                   <p className="text-sm text-orange-600 mb-3">
-                    Хувийн мэдээллээ бөглөөгүй байна
+                    Бөглөөгүй байна
                   </p>
                   <Link
                     href="/profile"
@@ -122,41 +226,20 @@ export default function HomePage() {
                     Мэдээлэл бөглөх
                   </Link>
                 </div>
-              ) : profile.isVerified ? (
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-green-500 text-lg">✅</span>
-                    <span className="text-sm text-green-700 font-medium">
-                      Баталгаажсан
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    {profile.lastName} {profile.firstName}
-                  </p>
-                  <Link
-                    href="/programs"
-                    className="inline-block mt-2 text-sm text-indigo-600 hover:underline"
-                  >
-                    Хөтөлбөр сонгох →
-                  </Link>
-                </div>
               ) : (
                 <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-yellow-500 text-lg">⏳</span>
-                    <span className="text-sm text-yellow-700 font-medium">
-                      Хүлээгдэж байна
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    Мэдээлэл шалгагдаж байна
+                  <p className="text-sm text-gray-600 mb-1">
+                    {profile.lastName} {profile.firstName}
                   </p>
-                  <Link
-                    href="/profile"
-                    className="inline-block mt-2 text-sm text-indigo-600 hover:underline"
-                  >
-                    Дэлгэрэнгүй →
-                  </Link>
+                  {profile.isVerified ? (
+                    <span className="text-xs text-green-600 font-medium">
+                      ✅ Баталгаажсан
+                    </span>
+                  ) : (
+                    <span className="text-xs text-yellow-600 font-medium">
+                      ⏳ Хүлээгдэж буй
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -164,13 +247,19 @@ export default function HomePage() {
             <div className="bg-white rounded-xl shadow-sm border p-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-xl">
-                  📅
+                  �
                 </div>
-                <h3 className="font-semibold text-gray-800">
-                  Хичээлийн хуваарь
-                </h3>
+                <h3 className="font-semibold text-gray-800">Хөтөлбөр</h3>
               </div>
-              <p className="text-sm text-gray-400">Удахгүй нэмэгдэнэ...</p>
+              <p className="text-sm text-gray-500 mb-3">
+                Элсэх хөтөлбөрөө сонгоно уу
+              </p>
+              <Link
+                href="/programs"
+                className="inline-block bg-green-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-green-700 transition"
+              >
+                Хөтөлбөр харах
+              </Link>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border p-6">
@@ -181,20 +270,6 @@ export default function HomePage() {
                 <h3 className="font-semibold text-gray-800">Дүн</h3>
               </div>
               <p className="text-sm text-gray-400">Удахгүй нэмэгдэнэ...</p>
-            </div>
-          </div>
-
-          {/* Notifications */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center text-xl">
-                🔔
-              </div>
-              <h3 className="font-semibold text-gray-800">Мэдэгдэл</h3>
-            </div>
-            <div className="text-center py-8 text-gray-400">
-              <p className="text-4xl mb-2">📭</p>
-              <p className="text-sm">Шинэ мэдэгдэл байхгүй</p>
             </div>
           </div>
         </main>

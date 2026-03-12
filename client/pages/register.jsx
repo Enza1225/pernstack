@@ -51,16 +51,28 @@ export default function RegisterPage() {
       await http.post("/api/auth/verify-code", { phone: fullPhone, code });
 
       // Then register
-      await http.post("/api/auth/register", {
+      const response = await http.post("/api/auth/register", {
         phone: fullPhone,
         password,
         name,
       });
 
-      setMessage("Registration successful! Redirecting to login...");
+      const { user } = response.data;
+      localStorage.setItem("token", user.token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: user.id,
+          phone: user.phone,
+          name: user.name,
+          role: user.role,
+        }),
+      );
+
+      setMessage("Амжилттай бүртгэгдлээ!");
       setTimeout(() => {
-        window.location.href = "/login";
-      }, 2000);
+        window.location.href = "/";
+      }, 1000);
     } catch (error) {
       setMessage(error.response?.data?.message || "Verification failed");
     } finally {
