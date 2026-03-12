@@ -1,6 +1,19 @@
 const prisma = require("../config/prisma");
+const { encrypt, decrypt, isEncrypted } = require("../config/encryption");
+const { logAudit } = require("./auditService");
 
-async function createProfile(userId, data) {
+// Decrypt sensitive fields before returning
+function decryptProfile(profile) {
+  if (!profile) return profile;
+  return {
+    ...profile,
+    registerNumber: isEncrypted(profile.registerNumber)
+      ? decrypt(profile.registerNumber)
+      : profile.registerNumber,
+  };
+}
+
+async function createProfile(userId, data, ipAddress) {
   const existing = await prisma.studentProfile.findUnique({
     where: { userId },
   });
@@ -11,7 +24,7 @@ async function createProfile(userId, data) {
   const profile = await prisma.studentProfile.create({
     data: {
       userId,
-      registerNumber: data.registerNumber,
+      registerNumber: encrypt(data.registerNumber),
       lastName: data.lastName,
       firstName: data.firstName,
       birthDate: new Date(data.birthDate),
@@ -23,25 +36,53 @@ async function createProfile(userId, data) {
     },
   });
 
-  return profile;
+  await logAudit({
+    action: "profile.create",
+    userId,
+    targetType: "StudentProfile",
+    targetId: profile.id,
+    ipAddress,
+  });
+
+  return decryptProfile(profile);
 }
 
-async function getProfile(userId) {
+async function getProfile(userId, ipAddress) {
   const profile = await prisma.studentProfile.findUnique({
     where: { userId },
   });
-  return profile;
+
+  if (profile) {
+    await logAudit({
+      action: "profile.view",
+      userId,
+      targetType: "StudentProfile",
+      targetId: profile.id,
+      ipAddress,
+    });
+  }
+
+  return decryptProfile(profile);
 }
 
-async function verifyProfile(profileId) {
+async function verifyProfile(profileId, adminUserId, ipAddress) {
   const profile = await prisma.studentProfile.update({
     where: { id: profileId },
     data: { isVerified: true },
   });
-  return profile;
+
+  await logAudit({
+    action: "profile.verify",
+    userId: adminUserId,
+    targetType: "StudentProfile",
+    targetId: profileId,
+    ipAddress,
+  });
+
+  return decryptProfile(profile);
 }
 
-async function getAllProfiles() {
+async function getAllProfiles(adminUserId, ipAddress) {
   const profiles = await prisma.studentProfile.findMany({
     include: {
       user: {
@@ -50,7 +91,16 @@ async function getAllProfiles() {
     },
     orderBy: { createdAt: "desc" },
   });
-  return profiles;
+
+  await logAudit({
+    action: "profile.list",
+    userId: adminUserId,
+    targetType: "StudentProfile",
+    ipAddress,
+    details: { count: profiles.length },
+  });
+
+  return profiles.map(decryptProfile);
 }
 
 module.exports = { createProfile, getProfile, verifyProfile, getAllProfiles };

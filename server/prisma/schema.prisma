@@ -21,7 +21,7 @@ model StudentProfile {
   id             Int      @id @default(autoincrement())
   userId         Int      @unique
   user           User     @relation(fields: [userId], references: [id])
-  registerNumber String // Регистрийн дугаар
+  registerNumber String // Encrypted регистрийн дугаар
   lastName       String // Овог
   firstName      String // Нэр
   birthDate      DateTime // Төрсөн огноо
@@ -41,4 +41,39 @@ model VerificationCode {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model OAuthClient {
+  id           Int          @id @default(autoincrement())
+  clientId     String       @unique
+  clientSecret String
+  name         String // Системийн нэр (жишээ: "Mobile App", "Partner System")
+  allowedIps   String[]     @default([]) // Зөвшөөрөгдсөн IP хаягууд
+  isActive     Boolean      @default(true)
+  tokens       OAuthToken[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model OAuthToken {
+  id          Int         @id @default(autoincrement())
+  accessToken String      @unique
+  clientId    Int
+  client      OAuthClient @relation(fields: [clientId], references: [id])
+  userId      Int?
+  expiresAt   DateTime
+  revoked     Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  action     String // "profile.view", "profile.create", "profile.verify", "oauth.token", etc.
+  userId     Int? // Who performed the action (user)
+  clientId   String? // OAuth client ID (if API access)
+  targetType String? // "StudentProfile", "User", etc.
+  targetId   Int? // ID of the target resource
+  ipAddress  String?
+  details    String? // JSON string with extra info
+  createdAt  DateTime @default(now())
 }
