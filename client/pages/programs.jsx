@@ -45,17 +45,14 @@ export default function ProgramsPage() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    const stored = localStorage.getItem("user");
+    if (!stored) {
       router.push("/login");
       return;
     }
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch {}
-    }
+    try {
+      setUser(JSON.parse(stored));
+    } catch {}
   }, []);
 
   return (

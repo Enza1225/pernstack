@@ -18,17 +18,35 @@ function auditMiddleware(req, res, next) {
   next();
 }
 
+// Set secure httpOnly cookie for user token
+function setTokenCookie(res, token) {
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    path: "/",
+  });
+}
+
 // JWT authentication middleware
 function authenticate(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  // Check cookie first, then Authorization header
+  let token = req.cookies?.token;
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    }
+  }
+
+  if (!token) {
     return res
       .status(401)
       .json({ success: false, message: "Authentication required" });
   }
 
   try {
-    const token = authHeader.split(" ")[1];
     req.user = verifyToken(token);
     next();
   } catch (error) {
@@ -72,7 +90,7 @@ function authenticateAny(req, res, next) {
 
   const token = authHeader.split(" ")[1];
 
-  // Try user JWT first
+  // Try user JWT first (from cookie or header)
   try {
     req.user = verifyToken(token);
     return next();
@@ -115,4 +133,5 @@ module.exports = {
   authorize,
   getClientIp,
   auditMiddleware,
+  setTokenCookie,
 };

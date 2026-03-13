@@ -2,14 +2,21 @@ const prisma = require("../config/prisma");
 const { encrypt, decrypt, isEncrypted } = require("../config/encryption");
 const { logAudit } = require("./auditService");
 
-// Decrypt sensitive fields before returning
+// Decrypt all PII fields before returning
+function decryptField(value) {
+  return isEncrypted(value) ? decrypt(value) : value;
+}
+
 function decryptProfile(profile) {
   if (!profile) return profile;
   return {
     ...profile,
-    registerNumber: isEncrypted(profile.registerNumber)
-      ? decrypt(profile.registerNumber)
-      : profile.registerNumber,
+    registerNumber: decryptField(profile.registerNumber),
+    lastName: decryptField(profile.lastName),
+    firstName: decryptField(profile.firstName),
+    gender: decryptField(profile.gender),
+    province: decryptField(profile.province),
+    district: decryptField(profile.district),
   };
 }
 

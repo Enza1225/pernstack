@@ -8,19 +8,17 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    const stored = localStorage.getItem("user");
+    if (!stored) {
       router.push("/login");
       return;
     }
-    fetchProfile(token);
+    fetchProfile();
   }, []);
 
-  const fetchProfile = async (token) => {
+  const fetchProfile = async () => {
     try {
-      const res = await http.get("/api/profile/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await http.get("/api/profile/me");
       if (res.data.profile) {
         setProfile(res.data.profile);
       }

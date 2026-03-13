@@ -40,6 +40,12 @@ router.post("/dan/callback", authLimiter, danCallback);
 // Protected routes
 router.get("/me", authenticate, getMe);
 
+// User logout — clear httpOnly cookie
+router.post("/logout", (req, res) => {
+  res.clearCookie("token", { httpOnly: true, sameSite: "lax", path: "/" });
+  res.json({ success: true, message: "Logged out" });
+});
+
 // Admin only: get all users
 router.get("/admin/users", authenticateAdmin, async (req, res) => {
   const prisma = require("../config/prisma");

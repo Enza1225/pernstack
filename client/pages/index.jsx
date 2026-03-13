@@ -37,10 +37,7 @@ export default function HomePage() {
   const fetchProfile = async () => {
     setProfileLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await http.get("/api/profile/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await http.get("/api/profile/me");
       setProfile(res.data.profile);
     } catch {
       // no profile
@@ -49,8 +46,10 @@ export default function HomePage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
+  const handleLogout = async () => {
+    try {
+      await http.post("/api/auth/logout");
+    } catch {}
     localStorage.removeItem("user");
     setUser(null);
   };

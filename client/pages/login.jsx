@@ -23,7 +23,6 @@ export default function LoginPage() {
 
       const { user } = response.data;
 
-      localStorage.setItem("token", user.token);
       localStorage.setItem(
         "user",
         JSON.stringify({

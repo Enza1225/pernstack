@@ -3,6 +3,7 @@ const {
   sendVerificationCode,
   verifyCode,
 } = require("../services/verificationService");
+const { setTokenCookie } = require("../middleware/errorHandler");
 
 async function sendCode(req, res) {
   try {
@@ -40,10 +41,16 @@ async function register(req, res) {
   try {
     const { phone, password, name } = req.body;
     const user = await registerUser(phone, password, name);
+    setTokenCookie(res, user.token);
     res.status(201).json({
       success: true,
       message: "Registration successful",
-      user,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        name: user.name,
+        role: user.role,
+      },
     });
   } catch (error) {
     res.status(400).json({
@@ -57,10 +64,16 @@ async function login(req, res) {
   try {
     const { phone, password, role } = req.body;
     const user = await loginUser(phone, password, role || null);
+    setTokenCookie(res, user.token);
     res.status(200).json({
       success: true,
       message: "Login successful",
-      user,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        name: user.name,
+        role: user.role,
+      },
     });
   } catch (error) {
     res.status(401).json({
@@ -88,10 +101,16 @@ async function loginWithCode(req, res) {
       loginWithCode: loginWithCodeService,
     } = require("../services/authService");
     const user = await loginWithCodeService(phone, code, roles || null);
+    setTokenCookie(res, user.token);
     res.status(200).json({
       success: true,
       message: "Login successful",
-      user,
+      user: {
+        id: user.id,
+        phone: user.phone,
+        name: user.name,
+        role: user.role,
+      },
     });
   } catch (error) {
     res.status(401).json({

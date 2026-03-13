@@ -41,7 +41,6 @@ export default function DanCallbackPage() {
       const res = await http.post("/api/auth/dan/callback", { code, state });
 
       const { user, isNew } = res.data;
-      localStorage.setItem("token", user.token);
       localStorage.setItem(
         "user",
         JSON.stringify({

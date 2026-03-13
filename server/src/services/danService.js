@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const prisma = require("../config/prisma");
 const { encrypt } = require("../config/encryption");
+const { logAudit } = require("./auditService");
 
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
@@ -24,6 +25,12 @@ const DAN_CONFIG = {
 function validateConfig() {
   if (!DAN_CONFIG.clientId || !DAN_CONFIG.clientSecret) {
     throw new Error("DAN_CLIENT_ID болон DAN_CLIENT_SECRET тохируулна уу");
+  }
+  if (
+    process.env.NODE_ENV === "production" &&
+    DAN_CONFIG.redirectUri.startsWith("http://")
+  ) {
+    throw new Error("DAN_REDIRECT_URI must use HTTPS in production");
   }
 }
 
@@ -63,8 +70,7 @@ async function exchangeCodeForToken(code) {
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error("DAN token error:", error);
+    console.error("DAN token exchange failed with status:", response.status);
     throw new Error("ДАН системээс токен авахад алдаа гарлаа");
   }
 
@@ -99,7 +105,7 @@ function extractDanProfile(danUserInfo) {
 }
 
 // Process DAN login/register callback
-async function handleDanCallback(code) {
+async function handleDanCallback(code, ipAddress) {
   // Exchange code for tokens
   const tokenData = await exchangeCodeForToken(code);
   const danUserInfo = await getUserInfo(tokenData.access_token);
@@ -136,6 +142,16 @@ async function handleDanCallback(code) {
       JWT_SECRET,
       { expiresIn: "24h" },
     );
+
+    await logAudit({
+      action: "dan.login",
+      userId: user.id,
+      targetType: "User",
+      targetId: user.id,
+      ipAddress,
+      details: JSON.stringify({ isNew: false }),
+    });
+
     return {
       isNew: false,
       user: {
@@ -175,6 +191,15 @@ async function handleDanCallback(code) {
     { expiresIn: "24h" },
   );
 
+  await logAudit({
+    action: "dan.register",
+    userId: newUser.id,
+    targetType: "User",
+    targetId: newUser.id,
+    ipAddress,
+    details: JSON.stringify({ isNew: true }),
+  });
+
   return {
     isNew: true,
     user: {
@@ -193,27 +218,20 @@ async function saveDanProfile(userId, danProfile) {
     ? new Date(danProfile.birthDate)
     : new Date();
 
+  const encryptedData = {
+    registerNumber: encrypt(danProfile.registerNumber),
+    lastName: encrypt(danProfile.lastName),
+    firstName: encrypt(danProfile.firstName),
+    birthDate,
+    gender: encrypt(danProfile.gender),
+    province: encrypt(danProfile.province),
+    district: encrypt(danProfile.district),
+  };
+
   await prisma.studentProfile.upsert({
     where: { userId },
-    update: {
-      registerNumber: encrypt(danProfile.registerNumber),
-      lastName: danProfile.lastName,
-      firstName: danProfile.firstName,
-      birthDate,
-      gender: danProfile.gender,
-      province: danProfile.province,
-      district: danProfile.district,
-    },
-    create: {
-      userId,
-      registerNumber: encrypt(danProfile.registerNumber),
-      lastName: danProfile.lastName,
-      firstName: danProfile.firstName,
-      birthDate,
-      gender: danProfile.gender,
-      province: danProfile.province,
-      district: danProfile.district,
-    },
+    update: encryptedData,
+    create: { userId, ...encryptedData },
   });
 }
 
